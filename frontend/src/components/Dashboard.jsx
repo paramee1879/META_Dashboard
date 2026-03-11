@@ -29,14 +29,13 @@ function fmt(val, prefix = '') {
 function today() { return new Date().toISOString().split('T')[0]; }
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; }
 
-function SectionHeader({ title, color, emoji }) {
+function SectionHeader({ title, emoji }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, marginTop: 8 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-        {emoji}
-      </div>
-      <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Syne, sans-serif' }}>{title}</h2>
-      <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.06)', marginLeft: 8 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20, marginTop: 8 }}>
+      <div style={{ width: 3, height: 24, background: '#c0392b', borderRadius: 2, flexShrink: 0 }} />
+      <span style={{ fontSize: 10, color: '#c0392b', fontFamily: "'Space Mono', monospace", letterSpacing: '0.18em', textTransform: 'uppercase' }}>{emoji}</span>
+      <h2 style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: '#fff', letterSpacing: '0.02em' }}>{title}</h2>
+      <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(192,57,43,0.3), transparent)', marginLeft: 4 }} />
     </div>
   );
 }
@@ -78,12 +77,15 @@ export default function Dashboard({ onDateChange }) {
     try {
       setLoading(true);
       setError(null);
+      // New backend: GET /insights?since=...&until=...
+      // Old backend: GET /insights?fb_page_id=...&since=...&until=...
+      // Support both by sending all params
       const res = await axios.get(`${API}/insights`, {
         params: {
-          fb_page_id: page.fb_page_id,
-          ig_user_id: page.ig_user_id || undefined,
           since: from,
           until: to,
+          fb_page_id: page.fb_page_id,
+          ig_user_id: page.ig_user_id || undefined,
         }
       });
       setData(res.data);
@@ -127,7 +129,10 @@ export default function Dashboard({ onDateChange }) {
     p.ig_username?.toLowerCase().includes(pageSearch.toLowerCase())
   );
 
-  const ads = data?.ad_insights || {};
+  // Support both backend formats:
+  // New format: { rows: [{impressions, clicks, ...}], count: N }
+  // Old format: { ad_insights: {impressions, clicks, ...}, ... }
+  const ads = data?.rows?.[0] || data?.ad_insights || {};
   const fbPage = data?.fb_page || {};
   const fbPosts = data?.fb_posts || [];
   const ig = data?.ig_insights || {};
@@ -189,10 +194,15 @@ export default function Dashboard({ onDateChange }) {
         <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
           <button onClick={() => setShowPagePicker(p => !p)} style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-            background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.9)',
-            borderRadius: 12, padding: '10px 16px', fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', backdropFilter: 'blur(10px)', color: 'var(--text-primary)'
-          }}>
+            background: '#111', border: '1px solid rgba(192,57,43,0.3)',
+            borderRadius: 2, padding: '10px 16px', fontSize: 12,
+            fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em',
+            cursor: 'pointer', color: '#fff',
+            transition: 'border-color 0.2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(192,57,43,0.7)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(192,57,43,0.3)'}
+          >
             {selectedPage?.fb_picture
               ? <img src={selectedPage.fb_picture} style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} alt="" />
               : <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg,#1877f2,#0a5ed4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>D</div>
@@ -205,40 +215,44 @@ export default function Dashboard({ onDateChange }) {
           {showPagePicker && (
             <div style={{
               position: 'absolute', left: 0, top: 'calc(100% + 6px)',
-              background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.9)', borderRadius: 16,
-              boxShadow: '0 8px 40px rgba(100,130,200,0.18)',
+              background: '#0f0f0f',
+              border: '1px solid rgba(192,57,43,0.3)',
+              borderRadius: 4,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
               zIndex: 200, width: '100%', minWidth: 320, maxHeight: 400, overflow: 'hidden',
               display: 'flex', flexDirection: 'column'
             }}>
-              <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(91,106,248,0.06)', borderRadius: 9, padding: '7px 12px' }}>
-                  <Search size={13} color="var(--text-secondary)" />
+              <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(192,57,43,0.15)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1a1a1a', border: '1px solid rgba(192,57,43,0.2)', borderRadius: 2, padding: '7px 12px' }}>
+                  <Search size={13} color="#555" />
                   <input autoFocus placeholder="Search pages…" value={pageSearch} onChange={e => setPageSearch(e.target.value)}
-                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: 13, flex: 1, color: 'var(--text-primary)' }} />
+                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: 12, flex: 1, color: '#fff', fontFamily: "'Space Mono', monospace" }} />
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>
-                  {pagesLoading ? 'Loading pages…' : `${filteredPages.length} pages`}
+                <div style={{ fontSize: 10, color: '#444', marginTop: 6, fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em' }}>
+                  {pagesLoading ? 'Loading…' : `${filteredPages.length} pages`}
                 </div>
               </div>
               <div style={{ overflowY: 'auto', flex: 1 }}>
                 {filteredPages.map(page => (
                   <div key={page.fb_page_id} onClick={() => handlePageSelect(page)} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer',
-                    background: selectedPage?.fb_page_id === page.fb_page_id ? 'rgba(91,106,248,0.08)' : 'transparent',
-                    borderLeft: selectedPage?.fb_page_id === page.fb_page_id ? '3px solid var(--accent)' : '3px solid transparent',
+                    background: selectedPage?.fb_page_id === page.fb_page_id ? 'rgba(192,57,43,0.1)' : 'transparent',
+                    borderLeft: selectedPage?.fb_page_id === page.fb_page_id ? '2px solid #c0392b' : '2px solid transparent',
                     transition: 'all 0.15s'
-                  }}>
+                  }}
+                  onMouseEnter={e => { if (selectedPage?.fb_page_id !== page.fb_page_id) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                  onMouseLeave={e => { if (selectedPage?.fb_page_id !== page.fb_page_id) e.currentTarget.style.background = 'transparent'; }}
+                  >
                     {page.fb_picture
-                      ? <img src={page.fb_picture} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} alt="" />
-                      : <div style={{ width: 34, height: 34, borderRadius: '50%', background: page.is_ad_account ? 'linear-gradient(135deg,#1877f2,#0a5ed4)' : '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: page.is_ad_account ? 'white' : '#4f46e5', fontWeight: 700, flexShrink: 0 }}>
+                      ? <img src={page.fb_picture} style={{ width: 32, height: 32, borderRadius: 2, objectFit: 'cover', flexShrink: 0 }} alt="" />
+                      : <div style={{ width: 32, height: 32, borderRadius: 2, background: page.is_ad_account ? '#c0392b22' : '#1a1a1a', border: '1px solid rgba(192,57,43,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#c0392b', fontWeight: 700, flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
                           {page.is_ad_account ? 'D' : 'f'}
                         </div>
                     }
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.fb_page_name}</div>
-                      {page.ig_username && <div style={{ fontSize: 11, color: '#e1306c' }}>📸 @{page.ig_username}</div>}
-                      {page.is_ad_account && <div style={{ fontSize: 11, color: '#1877f2' }}>📊 Ad account metrics</div>}
+                      <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#fff', fontFamily: "'Space Mono', monospace" }}>{page.fb_page_name}</div>
+                      {page.ig_username && <div style={{ fontSize: 10, color: '#c0392b', fontFamily: "'Space Mono', monospace" }}>@{page.ig_username}</div>}
+                      {page.is_ad_account && <div style={{ fontSize: 10, color: '#555', fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em' }}>ad account metrics</div>}
                     </div>
                   </div>
                 ))}
@@ -249,13 +263,14 @@ export default function Dashboard({ onDateChange }) {
 
         {/* Tab switcher — only relevant for real pages */}
         {!isAdAccount && (
-          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.6)', padding: 4, borderRadius: 12, backdropFilter: 'blur(10px)' }}>
-            {[{k:'both',l:'📊 All'},{k:'facebook',l:'🔵 Facebook'},{k:'instagram',l:'🩷 Instagram'}].map(tab => (
+          <div style={{ display: 'flex', gap: 2, background: '#111', padding: 3, borderRadius: 2, border: '1px solid rgba(192,57,43,0.2)' }}>
+            {[{k:'both',l:'ALL'},{k:'facebook',l:'FB'},{k:'instagram',l:'IG'}].map(tab => (
               <button key={tab.k} onClick={() => setActiveTab(tab.k)} style={{
-                padding: '7px 14px', borderRadius: 9, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                background: activeTab === tab.k ? 'white' : 'transparent',
-                color: activeTab === tab.k ? 'var(--text-primary)' : 'var(--text-secondary)',
-                boxShadow: activeTab === tab.k ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                padding: '6px 14px', borderRadius: 2, border: 'none', fontSize: 10, fontWeight: 700,
+                fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em',
+                cursor: 'pointer',
+                background: activeTab === tab.k ? '#c0392b' : 'transparent',
+                color: activeTab === tab.k ? '#fff' : '#555',
                 transition: 'all 0.2s'
               }}>{tab.l}</button>
             ))}
@@ -263,12 +278,14 @@ export default function Dashboard({ onDateChange }) {
         )}
 
         {/* Preset pills */}
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.6)', padding: 4, borderRadius: 10, backdropFilter: 'blur(10px)' }}>
+        <div style={{ display: 'flex', gap: 2, background: '#111', padding: 3, borderRadius: 2, border: '1px solid rgba(192,57,43,0.2)' }}>
           {presets.map(p => (
             <button key={p.days} onClick={() => handlePreset(p.days)} style={{
-              padding: '5px 12px', borderRadius: 7, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: activePreset === p.days ? 'var(--accent)' : 'transparent',
-              color: activePreset === p.days ? 'white' : 'var(--text-secondary)',
+              padding: '5px 12px', borderRadius: 2, border: 'none', fontSize: 10, fontWeight: 700,
+              fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em',
+              cursor: 'pointer',
+              background: activePreset === p.days ? '#c0392b' : 'transparent',
+              color: activePreset === p.days ? '#fff' : '#555',
               transition: 'all 0.2s'
             }}>{p.label}</button>
           ))}
@@ -278,34 +295,40 @@ export default function Dashboard({ onDateChange }) {
         <div style={{ position: 'relative' }}>
           <button onClick={() => setShowPicker(p => !p)} style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.9)',
-            borderRadius: 12, padding: '10px 16px', fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', backdropFilter: 'blur(10px)', color: 'var(--text-primary)'
-          }}>
+            background: '#111', border: '1px solid rgba(192,57,43,0.3)',
+            borderRadius: 2, padding: '10px 16px',
+            fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.06em',
+            cursor: 'pointer', color: '#aaa',
+            transition: 'border-color 0.2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(192,57,43,0.7)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(192,57,43,0.3)'}
+          >
             <Calendar size={14} color="var(--accent)" />
             {fromDate} → {toDate}
           </button>
           {showPicker && (
             <div style={{
               position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-              background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.9)', borderRadius: 16,
-              boxShadow: '0 8px 40px rgba(100,130,200,0.18)', padding: 20, zIndex: 100, minWidth: 280,
+              background: '#0f0f0f',
+              border: '1px solid rgba(192,57,43,0.3)',
+              borderRadius: 4,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.6)', padding: 20, zIndex: 100, minWidth: 280,
             }}>
               <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>From</label>
+                  <label style={{ fontSize: 10, color: '#555', display: 'block', marginBottom: 4, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase' }}>From</label>
                   <input type="date" value={fromDate} max={toDate} onChange={e => { setFromDate(e.target.value); setActivePreset(null); }}
-                    style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(91,106,248,0.25)', fontSize: 13, outline: 'none', background: 'rgba(91,106,248,0.04)', color: 'var(--text-primary)' }} />
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: 2, border: '1px solid rgba(192,57,43,0.25)', fontSize: 12, outline: 'none', background: '#1a1a1a', color: '#fff', fontFamily: "'Space Mono', monospace" }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>To</label>
+                  <label style={{ fontSize: 10, color: '#555', display: 'block', marginBottom: 4, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase' }}>To</label>
                   <input type="date" value={toDate} min={fromDate} max={today()} onChange={e => { setToDate(e.target.value); setActivePreset(null); }}
-                    style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(91,106,248,0.25)', fontSize: 13, outline: 'none', background: 'rgba(91,106,248,0.04)', color: 'var(--text-primary)' }} />
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: 2, border: '1px solid rgba(192,57,43,0.25)', fontSize: 12, outline: 'none', background: '#1a1a1a', color: '#fff', fontFamily: "'Space Mono', monospace" }} />
                 </div>
               </div>
               <button onClick={() => { setShowPicker(false); fetchInsights(selectedPage, fromDate, toDate); }}
-                style={{ width: '100%', padding: '10px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ width: '100%', padding: '10px', background: '#c0392b', color: 'white', border: 'none', borderRadius: 2, fontFamily: "'Space Mono', monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'pointer', marginTop: 14 }}>
                 Apply Date Range
               </button>
             </div>
@@ -314,22 +337,22 @@ export default function Dashboard({ onDateChange }) {
       </div>
 
       {lastUpdated && !loading && (
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 16 }}>
-          Last updated: {lastUpdated} · {fromDate} → {toDate}
+        <div style={{ fontSize: 10, color: '#444', marginBottom: 20, fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em' }}>
+          ◈ Last synced: {lastUpdated} · {fromDate} → {toDate}
         </div>
       )}
 
       {error && (
-        <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 12, padding: '12px 18px', marginBottom: 20, color: '#dc2626', fontSize: 14 }}>
-          ⚠️ {error}
+        <div style={{ background: 'rgba(192,57,43,0.08)', border: '1px solid rgba(192,57,43,0.4)', borderRadius: 2, padding: '12px 18px', marginBottom: 20, color: '#e74c3c', fontSize: 12, fontFamily: "'Space Mono', monospace" }}>
+          ✕ {error}
         </div>
       )}
 
       {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, color: 'var(--text-secondary)', fontSize: 14 }}>
-          <div style={{ width: 18, height: 18, border: '2px solid rgba(91,106,248,0.2)', borderTop: '2px solid var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, color: '#555', fontSize: 11, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <div style={{ width: 16, height: 16, border: '1px solid #333', borderTop: '1px solid #c0392b', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-          Loading insights…
+          Fetching data…
         </div>
       )}
 
@@ -338,16 +361,16 @@ export default function Dashboard({ onDateChange }) {
           {/* ── AD ACCOUNT VIEW ── */}
           {isAdAccount && (
             <div style={{ marginBottom: 36 }}>
-              <SectionHeader title="DigiBug Ads Performance" color="linear-gradient(135deg,#1877f2,#0a5ed4)" emoji="📊" />
+              <SectionHeader title="DigiBug Ads Performance" emoji="◈" />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: 12, marginBottom: 24 }}>
                 {adMetrics.map(m => <MetricCard key={m.title} {...m} />)}
               </div>
               {ads.spend && (
-                <div className="glass" style={{ padding: '20px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                <div className="glass" style={{ padding: '24px 28px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap', borderLeft: '3px solid #c0392b' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Total Ad Spend</div>
-                    <div style={{ fontSize: 36, fontWeight: 800 }}>${parseFloat(ads.spend).toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{fromDate} → {toDate}</div>
+                    <div style={{ fontSize: 10, color: '#555', marginBottom: 6, fontFamily: "'Space Mono', monospace", letterSpacing: '0.14em', textTransform: 'uppercase' }}>Total Ad Spend</div>
+                    <div style={{ fontSize: 40, fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#fff' }}>${parseFloat(ads.spend).toFixed(2)}</div>
+                    <div style={{ fontSize: 10, color: '#444', marginTop: 4, fontFamily: "'Space Mono', monospace" }}>{fromDate} → {toDate}</div>
                   </div>
                   {[
                     { label: 'Impressions', val: fmt(ads.impressions) },
@@ -355,16 +378,16 @@ export default function Dashboard({ onDateChange }) {
                     { label: 'Reach',       val: fmt(ads.reach) },
                     { label: 'CTR',         val: ads.ctr ? `${parseFloat(ads.ctr).toFixed(2)}%` : '—' },
                   ].map(s => (
-                    <div key={s.label} style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 22, fontWeight: 700 }}>{s.val}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{s.label}</div>
+                    <div key={s.label} style={{ textAlign: 'center', padding: '0 16px', borderLeft: '1px solid rgba(192,57,43,0.15)' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: '#fff' }}>{s.val}</div>
+                      <div style={{ fontSize: 10, color: '#555', fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
               )}
               {!ads.impressions && !loading && (
-                <div style={{ padding: '16px 20px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 12, fontSize: 13, color: '#92400e' }}>
-                  ⚠️ No ad data for this date range. Try selecting <strong>1Y</strong>.
+                <div style={{ padding: '16px 20px', background: 'rgba(192,57,43,0.05)', border: '1px solid rgba(192,57,43,0.2)', borderRadius: 2, fontSize: 11, color: '#c0392b', fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em' }}>
+                  ◈ No ad data for this date range. Try selecting <strong>1Y</strong>.
                 </div>
               )}
             </div>
@@ -373,17 +396,20 @@ export default function Dashboard({ onDateChange }) {
           {/* ── FACEBOOK SECTION ── */}
           {!isAdAccount && (activeTab === 'both' || activeTab === 'facebook') && (
             <div style={{ marginBottom: 36 }}>
-              <SectionHeader title="Facebook Overview" color="#1877f2" emoji="f" />
+              <SectionHeader title="Facebook Overview" emoji="f" />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: 12, marginBottom: 16 }}>
                 {fbMetrics.map(m => <MetricCard key={m.title} {...m} />)}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Ads Performance</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#555', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Space Mono', monospace", marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 20, height: 1, background: '#c0392b' }} />
+                Ads Performance
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: 12 }}>
                 {adMetrics.map(m => <MetricCard key={m.title} {...m} />)}
               </div>
               {fbPosts.length > 0 && (
                 <div style={{ marginTop: 24 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>🏆 Top Facebook Posts</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, fontFamily: "'Playfair Display', serif", color: '#fff' }}>Top Facebook Posts</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
                     {fbPosts.map((post, i) => <PostCard key={post.id} post={post} platform="fb" delay={i * 80} />)}
                   </div>
@@ -395,13 +421,13 @@ export default function Dashboard({ onDateChange }) {
           {/* ── INSTAGRAM SECTION ── */}
           {!isAdAccount && (activeTab === 'both' || activeTab === 'instagram') && selectedPage?.ig_user_id && (
             <div style={{ marginBottom: 36 }}>
-              <SectionHeader title="Instagram Overview" color="linear-gradient(135deg,#f09433,#dc2743,#bc1888)" emoji="📸" />
+              <SectionHeader title="Instagram Overview" emoji="◉" />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: 12 }}>
                 {igMetrics.map(m => <MetricCard key={m.title} {...m} />)}
               </div>
               {igPosts.length > 0 && (
                 <div style={{ marginTop: 24 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>🏆 Top Instagram Posts</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, fontFamily: "'Playfair Display', serif", color: '#fff' }}>Top Instagram Posts</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
                     {igPosts.map((post, i) => <PostCard key={post.id} post={post} platform="ig" delay={i * 80} />)}
                   </div>
@@ -411,27 +437,27 @@ export default function Dashboard({ onDateChange }) {
           )}
 
           {/* ── CHART ── */}
-          <div className="glass" style={{ padding: '24px 28px' }}>
-            <h3 style={{ marginBottom: 4, fontSize: 16, fontWeight: 700 }}>Performance Overview</h3>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 20 }}>{fromDate} → {toDate}</p>
+          <div className="glass" style={{ padding: '28px 32px' }}>
+            <h3 style={{ marginBottom: 4, fontSize: 18, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: '#fff' }}>Performance Overview</h3>
+            <p style={{ fontSize: 10, color: '#444', marginBottom: 24, fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em' }}>{fromDate} → {toDate}</p>
             {chartData.some(d => d.value > 0) ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData} barSize={44}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => fmt(v)} />
-                  <Tooltip formatter={v => fmt(v)} contentStyle={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.8)', borderRadius: 10, fontSize: 13 }} />
-                  <Bar dataKey="value" fill="url(#barGrad)" radius={[7, 7, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#555', fontFamily: 'Space Mono, monospace' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#555', fontFamily: 'Space Mono, monospace' }} axisLine={false} tickLine={false} tickFormatter={v => fmt(v)} />
+                  <Tooltip formatter={v => fmt(v)} contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(192,57,43,0.3)', borderRadius: 4, fontSize: 12, fontFamily: 'Space Mono, monospace', color: '#fff' }} />
+                  <Bar dataKey="value" fill="url(#barGrad)" radius={[2, 2, 0, 0]} />
                   <defs>
                     <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#1877f2" stopOpacity={0.9} />
-                      <stop offset="100%" stopColor="#e1306c" stopOpacity={0.6} />
+                      <stop offset="0%" stopColor="#c0392b" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#7b241c" stopOpacity={0.5} />
                     </linearGradient>
                   </defs>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#333', fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 No data for this date range
               </div>
             )}

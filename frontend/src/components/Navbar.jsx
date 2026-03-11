@@ -1,50 +1,92 @@
-import { RefreshCw, Activity } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 export default function Navbar({ onRefresh, refreshing, lastUpdated }) {
   return (
-    <nav className="glass" style={{
-      padding: '14px 28px',
+    <nav style={{
+      padding: '16px 32px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: '28px',
+      marginBottom: '32px',
+      background: '#0d0d0d',
+      borderBottom: '1px solid rgba(192,57,43,0.25)',
+      position: 'relative',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg, #1877f2, #a78bfa)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <Activity size={18} color="white" />
+      {/* Red left accent */}
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: 'linear-gradient(180deg, #c0392b, #7b241c)' }} />
+
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ width: 22, height: 2, background: '#c0392b' }} />
+          <div style={{ width: 14, height: 2, background: '#555' }} />
+          <div style={{ width: 18, height: 2, background: '#c0392b' }} />
         </div>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>InsightBoard</span>
+        <div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, color: '#fff', letterSpacing: '0.02em' }}>
+            INSIGHT<span style={{ color: '#c0392b' }}>BOARD</span>
+          </div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, color: '#444', letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 1 }}>
+            Meta Ads Intelligence
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '28px', color: 'var(--text-secondary)', fontSize: 14 }}>
-        <span style={{ fontWeight: 500, color: 'var(--accent)' }}>Dashboard</span>
-        <span style={{ cursor: 'pointer' }}>Reports</span>
-        <span style={{ cursor: 'pointer' }}>Settings</span>
+      {/* Nav links */}
+      <div style={{ display: 'flex', gap: 32 }}>
+        {['Dashboard', 'Reports', 'Settings'].map((item, i) => (
+          <span key={item} style={{
+            fontFamily: "'Space Mono', monospace", fontSize: 11,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: i === 0 ? '#c0392b' : '#444',
+            cursor: 'pointer',
+            borderBottom: i === 0 ? '1px solid #c0392b' : '1px solid transparent',
+            paddingBottom: 2,
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={e => { if (i !== 0) e.target.style.color = '#888'; }}
+          onMouseLeave={e => { if (i !== 0) e.target.style.color = '#444'; }}
+          >
+            {item}
+          </span>
+        ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      {/* Right side */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
         {lastUpdated && (
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            Updated: {new Date(lastUpdated).toLocaleTimeString()}
+          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#444', letterSpacing: '0.08em' }}>
+            {new Date(lastUpdated).toLocaleTimeString()}
           </span>
         )}
+
         <button onClick={onRefresh} disabled={refreshing} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'var(--accent)', color: 'white',
-          border: 'none', borderRadius: 10, padding: '8px 16px',
-          fontSize: 13, fontWeight: 600, cursor: refreshing ? 'not-allowed' : 'pointer',
-          opacity: refreshing ? 0.7 : 1, transition: 'all 0.2s'
-        }}>
-          <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-          {refreshing ? 'Refreshing…' : 'Refresh'}
+          display: 'flex', alignItems: 'center', gap: 7,
+          background: 'transparent',
+          border: '1px solid rgba(192,57,43,0.5)',
+          color: '#c0392b', borderRadius: 2,
+          padding: '8px 18px',
+          fontFamily: "'Space Mono', monospace",
+          fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+          cursor: refreshing ? 'not-allowed' : 'pointer',
+          opacity: refreshing ? 0.5 : 1,
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={e => { if (!refreshing) { e.currentTarget.style.background = 'rgba(192,57,43,0.12)'; e.currentTarget.style.borderColor = '#c0392b'; }}}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(192,57,43,0.5)'; }}
+        >
+          <RefreshCw size={12} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+          {refreshing ? 'Syncing' : 'Refresh'}
         </button>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 2s ease infinite' }} />
-          <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 500 }}>Live</span>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e88', animation: 'pulse 2s ease infinite' }} />
+          <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#22c55e', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Live</span>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+      `}</style>
     </nav>
   );
 }
